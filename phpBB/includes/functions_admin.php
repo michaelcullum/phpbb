@@ -2185,10 +2185,22 @@ function sync($mode, $where_type = '', $where_ids = '', $resync_parents = false,
 	return;
 }
 
+if (!function_exists('prune'))
+{
+	/**
+	* Prune Function
+	* NOTE: Deprecated; this is just a wrapper for its phpbb_* variant for compatibility's sake
+	*/
+	function prune()
+	{
+		return call_user_func_array('phpbb_prune', func_get_args());
+	}
+}
+
 /**
 * Prune function
 */
-function prune($forum_id, $prune_mode, $prune_date, $prune_flags = 0, $auto_sync = true)
+function phpbb_prune($forum_id, $prune_mode, $prune_date, $prune_flags = 0, $auto_sync = true)
 {
 	global $db;
 
