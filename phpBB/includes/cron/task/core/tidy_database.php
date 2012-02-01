@@ -30,11 +30,11 @@ class phpbb_cron_task_core_tidy_database extends phpbb_cron_task_base
 	public function run()
 	{
 		global $phpbb_root_path, $phpEx;
-		if (!function_exists('tidy_database'))
+		if (!function_exists('phpbb_tidy_database'))
 		{
 			include($phpbb_root_path . 'includes/functions_admin.' . $phpEx);
 		}
-		tidy_database();
+		phpbb_tidy_database();
 	}
 
 	/**

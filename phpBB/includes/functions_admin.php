@@ -3168,6 +3168,8 @@ function get_remote_file($host, $directory, $filename, &$errstr, &$errno, $port 
 	return $file_info;
 }
 
+
+
 /**
 * Tidy Warnings
 * Remove all warnings which have now expired from the database
@@ -3214,10 +3216,22 @@ function tidy_warnings()
 	set_config('warnings_last_gc', time(), true);
 }
 
+if (!function_exists('tidy_database'))
+{
+	/**
+	* Tidy Database Function
+	* NOTE: Deprecated; this is just a wrapper for its phpbb_* variant for compatibility's sake
+	*/
+	function tidy_database()
+	{
+		return call_user_func_array('phpbb_tidy_database', func_get_args());
+	}
+}
+
 /**
 * Tidy database, doing some maintanance tasks
 */
-function tidy_database()
+function phpbb_tidy_database()
 {
 	global $db;
 
