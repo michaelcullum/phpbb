@@ -227,7 +227,7 @@ function mcp_post_details($id, $mode, $action)
 	// Get User Notes
 	$log_data = array();
 	$log_count = false;
-	view_log('user', $log_data, $log_count, $config['posts_per_page'], 0, 0, 0, $post_info['user_id']);
+	phpbb_view_log('user', $log_data, $log_count, $config['posts_per_page'], 0, 0, 0, $post_info['user_id']);
 
 	if (!empty($log_data))
 	{

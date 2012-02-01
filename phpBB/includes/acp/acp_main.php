@@ -529,7 +529,7 @@ class acp_main
 
 		if ($auth->acl_get('a_viewlogs'))
 		{
-			view_log('admin', $log_data, $log_count, 5);
+			phpbb_view_log('admin', $log_data, $log_count, 5);
 
 			foreach ($log_data as $row)
 			{

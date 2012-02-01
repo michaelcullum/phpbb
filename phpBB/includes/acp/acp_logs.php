@@ -127,7 +127,7 @@ class acp_logs
 		// Grab log data
 		$log_data = array();
 		$log_count = 0;
-		$start = view_log($mode, $log_data, $log_count, $config['topics_per_page'], $start, $forum_id, 0, 0, $sql_where, $sql_sort, $keywords);
+		$start = phpbb_view_log($mode, $log_data, $log_count, $config['topics_per_page'], $start, $forum_id, 0, 0, $sql_where, $sql_sort, $keywords);
 
 		$template->assign_vars(array(
 			'L_TITLE'		=> $l_title,

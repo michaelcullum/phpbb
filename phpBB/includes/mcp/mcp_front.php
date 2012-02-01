@@ -304,7 +304,7 @@ function mcp_front_view($id, $mode, $action)
 		{
 			$log_count = false;
 			$log = array();
-			view_log('mod', $log, $log_count, 5, 0, $forum_list);
+			phpbb_view_log('mod', $log, $log_count, 5, 0, $forum_list);
 
 			foreach ($log as $row)
 			{

@@ -2482,11 +2482,23 @@ function cache_moderators()
 	$db->sql_multi_insert(MODERATOR_CACHE_TABLE, $sql_ary);
 }
 
+if (!function_exists('view_log'))
+{
+	/**
+	* View log Function
+	* NOTE: Deprecated; this is just a wrapper for its phpbb_* variant for compatibility's sake
+	*/
+	function view_log()
+	{
+		return call_user_func_array('phpbb_view_log', func_get_args());
+	}
+}
+
 /**
 * View log
 * If $log_count is set to false, we will skip counting all entries in the database.
 */
-function view_log($mode, &$log, &$log_count, $limit = 0, $offset = 0, $forum_id = 0, $topic_id = 0, $user_id = 0, $limit_days = 0, $sort_by = 'l.log_time DESC', $keywords = '')
+function phpbb_view_log($mode, &$log, &$log_count, $limit = 0, $offset = 0, $forum_id = 0, $topic_id = 0, $user_id = 0, $limit_days = 0, $sort_by = 'l.log_time DESC', $keywords = '')
 {
 	global $db, $user, $auth, $phpEx, $phpbb_root_path, $phpbb_admin_path;
 

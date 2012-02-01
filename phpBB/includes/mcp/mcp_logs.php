@@ -169,7 +169,7 @@ class mcp_logs
 		// Grab log data
 		$log_data = array();
 		$log_count = 0;
-		$start = view_log('mod', $log_data, $log_count, $config['topics_per_page'], $start, $forum_list, $topic_id, 0, $sql_where, $sql_sort, $keywords);
+		$start = phpbb_view_log('mod', $log_data, $log_count, $config['topics_per_page'], $start, $forum_list, $topic_id, 0, $sql_where, $sql_sort, $keywords);
 
 		$template->assign_vars(array(
 			'PAGE_NUMBER'		=> on_page($log_count, $config['topics_per_page'], $start),
