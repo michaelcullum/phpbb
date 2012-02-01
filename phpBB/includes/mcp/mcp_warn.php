@@ -88,7 +88,7 @@ class mcp_warn
 		$highest = array();
 		$count = 0;
 
-		view_warned_users($highest, $count, 5);
+		phpbb_view_warned_users($highest, $count, 5);
 
 		foreach ($highest as $row)
 		{
@@ -158,7 +158,7 @@ class mcp_warn
 		$users = array();
 		$user_count = 0;
 
-		view_warned_users($users, $user_count, $config['topics_per_page'], $start, $sql_where, $sql_sort);
+		phpbb_view_warned_users($users, $user_count, $config['topics_per_page'], $start, $sql_where, $sql_sort);
 
 		foreach ($users as $row)
 		{

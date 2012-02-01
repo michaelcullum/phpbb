@@ -2940,10 +2940,22 @@ function view_inactive_users(&$users, &$user_count, $limit = 0, $offset = 0, $li
 	return $offset;
 }
 
+if (!function_exists('view_warned_users'))
+{
+	/**
+	* List warned users Function
+	* NOTE: Deprecated; this is just a wrapper for its phpbb_* variant for compatibility's sake
+	*/
+	function view_warned_users()
+	{
+		return call_user_func_array('phpbb_view_warned_users', func_get_args());
+	}
+}
+
 /**
 * Lists warned users
 */
-function view_warned_users(&$users, &$user_count, $limit = 0, $offset = 0, $limit_days = 0, $sort_by = 'user_warnings DESC')
+function phpbb_view_warned_users(&$users, &$user_count, $limit = 0, $offset = 0, $limit_days = 0, $sort_by = 'user_warnings DESC')
 {
 	global $db;
 
