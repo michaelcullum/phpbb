@@ -930,6 +930,8 @@ function display_custom_bbcodes()
 		$i++;
 	}
 	$db->sql_freeresult($result);
+
+	$phpbb_dispatcher->dispatch('core.display_custom_bbcodes');
 }
 
 /**
