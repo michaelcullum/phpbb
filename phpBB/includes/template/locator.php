@@ -17,107 +17,31 @@ if (!defined('IN_PHPBB'))
 
 
 /**
-* Template locator. Maintains mapping from template handles to source paths.
+* Resource locator interface.
 *
-* Template locator is aware of template inheritance, and can return actual
-* filesystem paths (i.e., the "primary" template or the "parent" template)
+* Objects implementing this interface maintain mapping from template handles
+* to source template file paths and locate templates.
+*
+* Locates style files.
+*
+* Resource locator is aware of styles tree, and can return actual
+* filesystem paths (i.e., the "child" style or the "parent" styles)
 * depending on what files exist.
+*
+* Root paths stored in locator are paths to style directories. Templates are
+* stored in subdirectory that $template_path points to.
 *
 * @package phpBB3
 */
-class phpbb_template_locator
+interface phpbb_template_locator
 {
-	/**
-	* Paths to directories that templates are stored in.
-	* @var array
-	*/
-	private $roots = array();
-
-	/**
-	* Index of the main template in the roots array
-	* @var int
-	*/
-	private $main_root_id = 0;
-
-	/**
-	* Map from root index to handles to source template file paths.
-	* Normally it only contains paths for handles that are used
-	* (or are likely to be used) by the page being rendered and not
-	* all templates that exist on the filesystem.
-	* @var array
-	*/
-	private $files = array();
-
-	/**
-	* Map from handles to source template file names.
-	* Covers the same data as $files property but maps to basenames
-	* instead of paths.
-	* @var array
-	*/
-	private $filenames = array();
-
-	/**
-	* Set main template location (must have been added through set_paths first).
-	*
-	* @param string $template_path Path to template directory
-	* @return null
-	*/
-	public function set_main_template($template)
-	{
-		$this->main_root_id = array_search($template, $this->roots, true);
-	}
-
-	/**
-	* Sets the list of template paths
-	*
-	* These paths will be searched for template files in the provided order.
-	* Paths may be outside of phpBB, but templates loaded from these paths
-	* will still be cached.
-	*
-	* @param array $template_paths An array of paths to template directories
-	* @return null
-	*/
-	public function set_paths($template_paths)
-	{
-		$this->roots = array();
-		$this->files = array();
-		$this->filenames = array();
-		$this->main_root_id = 0;
-
-		foreach ($template_paths as $path)
-		{
-			// Make sure $path has no ending slash
-			if (substr($path, -1) === '/')
-			{
-				$path = substr($path, 0, -1);
-			}
-			$this->roots[] = $path;
-		}
-	}
-
 	/**
 	* Sets the template filenames for handles. $filename_array
 	* should be a hash of handle => filename pairs.
 	*
 	* @param array $filname_array Should be a hash of handle => filename pairs.
 	*/
-	public function set_filenames(array $filename_array)
-	{
-		foreach ($filename_array as $handle => $filename)
-		{
-			if (empty($filename))
-			{
-				trigger_error("template locator: set_filenames: Empty filename specified for $handle", E_USER_ERROR);
-			}
-
-			$this->filename[$handle] = $filename;
-
-			foreach ($this->roots as $root_index => $root)
-			{
-				$this->files[$root_index][$handle] = $root . '/' . $filename;
-			}
-		}
-	}
+	public function set_filenames(array $filename_array);
 
 	/**
 	* Determines the filename for a template handle.
@@ -129,50 +53,33 @@ class phpbb_template_locator
 	* @param $handle string Template handle
 	* @return string Filename corresponding to the template handle
 	*/
-	public function get_filename_for_handle($handle)
-	{
-		if (!isset($this->filename[$handle]))
-		{
-			trigger_error("template locator: get_filename_for_handle: No file specified for handle $handle", E_USER_ERROR);
-		}
-		return $this->filename[$handle];
-	}
+	public function get_filename_for_handle($handle);
 
 	/**
 	* Determines the source file path for a template handle without
-	* regard for template inheritance.
+	* regard for styles tree.
 	*
-	* This function returns the path in "primary" template directory
+	* This function returns the path in "primary" style directory
 	* corresponding to the given template handle. That path may or
 	* may not actually exist on the filesystem. Because this function
 	* does not perform stat calls to determine whether the path it
 	* returns actually exists, it is faster than get_source_file_for_handle.
 	*
 	* Use get_source_file_for_handle to obtain the actual path that is
-	* guaranteed to exist (which might come from the parent/fallback
-	* template directory if template inheritance is used).
+	* guaranteed to exist (which might come from the parent style 
+	* directory if primary style has parent styles).
 	*
 	* This function will trigger an error if the handle was never
 	* associated with a template file via set_filenames.
 	*
 	* @param $handle string Template handle
-	* @return string Path to source file path in primary template directory
+	* @return string Path to source file path in primary style directory
 	*/
-	public function get_virtual_source_file_for_handle($handle)
-	{
-		// If we don't have a file assigned to this handle, die.
-		if (!isset($this->files[$this->main_root_id][$handle]))
-		{
-			trigger_error("template locator: No file specified for handle $handle", E_USER_ERROR);
-		}
-
-		$source_file = $this->files[$this->main_root_id][$handle];
-		return $source_file;
-	}
+	public function get_virtual_source_file_for_handle($handle);
 
 	/**
 	* Determines the source file path for a template handle, accounting
-	* for template inheritance and verifying that the path exists.
+	* for styles tree and verifying that the path exists.
 	*
 	* This function returns the actual path that may be compiled for
 	* the specified template handle. It will trigger an error if
@@ -181,34 +88,34 @@ class phpbb_template_locator
 	* filesystem.
 	*
 	* Use get_virtual_source_file_for_handle to just resolve a template
-	* handle to a path without any filesystem or inheritance checks.
+	* handle to a path without any filesystem or styles tree checks.
 	*
 	* @param string $handle Template handle (i.e. "friendly" template name)
+	* @param bool $find_all If true, each root path will be checked and function
+	*				will return array of files instead of string and will not
+	*				trigger a error if template does not exist
 	* @return string Source file path
 	*/
-	public function get_source_file_for_handle($handle)
-	{
-		// If we don't have a file assigned to this handle, die.
-		if (!isset($this->files[$this->main_root_id][$handle]))
-		{
-			trigger_error("template locator: No file specified for handle $handle", E_USER_ERROR);
-		}
+	public function get_source_file_for_handle($handle, $find_all = false);
 
-		// locate a source file that exists
-		$source_file = $this->files[0][$handle];
-		$tried = $source_file;
-		for ($i = 1, $n = count($this->roots); $i < $n && !file_exists($source_file); $i++)
-		{
-			$source_file = $this->files[$i][$handle];
-			$tried .= ', ' . $source_file;
-		}
-
-		// search failed
-		if (!file_exists($source_file))
-		{
-			trigger_error("template locator: File for handle $handle does not exist. Could not find: $tried", E_USER_ERROR);
-		}
-
-		return $source_file;
-	}
+	/**
+	* Locates source file path, accounting for styles tree and verifying that
+	* the path exists.
+	*
+	* Unlike previous functions, this function works without template handle
+	* and it can search for more than one file. If more than one file name is
+	* specified, it will return location of file that it finds first.
+	*
+	* @param array $files List of files to locate.
+	* @param bool $return_default Determines what to return if file does not
+	*				exist. If true, function will return location where file is
+	*				supposed to be. If false, function will return false.
+	* @param bool $return_full_path If true, function will return full path
+	*				to file. If false, function will return file name. This
+	*				parameter can be used to check which one of set of files
+	*				is available.
+	* @return string or boolean Source file path if file exists or $return_default is
+	*				true. False if file does not exist and $return_default is false
+	*/
+	public function get_first_file_location($files, $return_default = false, $return_full_path = true);
 }

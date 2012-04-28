@@ -32,33 +32,39 @@ if (!defined('IN_PHPBB'))
 class phpbb_template
 {
 	/**
-	* @var phpbb_template_context Template context.
+	* Template context.
 	* Stores template data used during template rendering.
+	* @var phpbb_template_context
 	*/
-	private $context;
+	public $context;
 
 	/**
-	* @var string Path of the cache directory for the template
+	* Path of the cache directory for the template
+	* @var string
 	*/
 	public $cachepath = '';
 
 	/**
-	* @var string phpBB root path
+	* phpBB root path
+	* @var string
 	*/
 	private $phpbb_root_path;
 
 	/**
-	* @var phpEx PHP file extension
+	* PHP file extension
+	* @var string
 	*/
 	private $phpEx;
 
 	/**
-	* @var phpbb_config phpBB config instance
+	* phpBB config instance
+	* @var phpbb_config
 	*/
 	private $config;
 
 	/**
-	* @var user current user
+	* Current user
+	* @var phpbb_user
 	*/
 	private $user;
 
@@ -69,10 +75,10 @@ class phpbb_template
 	private $locator;
 
 	/**
-	* Template path provider
-	* @var phpbb_template_path_provider
+	* Location of templates directory within style directories
+	* @var string
 	*/
-	private $provider;
+	public $template_path = 'template/';
 
 	/**
 	* Constructor.
@@ -80,68 +86,15 @@ class phpbb_template
 	* @param string $phpbb_root_path phpBB root path
 	* @param user $user current user
 	* @param phpbb_template_locator $locator template locator
-	* @param phpbb_template_path_provider $provider template path provider
 	*/
-	public function __construct($phpbb_root_path, $phpEx, $config, $user, phpbb_template_locator $locator, phpbb_template_path_provider_interface $provider)
+	public function __construct($phpbb_root_path, $phpEx, $config, $user, phpbb_template_locator $locator)
 	{
 		$this->phpbb_root_path = $phpbb_root_path;
 		$this->phpEx = $phpEx;
 		$this->config = $config;
 		$this->user = $user;
 		$this->locator = $locator;
-		$this->provider = $provider;
-	}
-
-	/**
-	* Set template location based on (current) user's chosen style.
-	*/
-	public function set_template()
-	{
-		$template_name = $this->user->theme['template_path'];
-		$fallback_name = ($this->user->theme['template_inherits_id']) ? $this->user->theme['template_inherit_path'] : false;
-
-		return $this->set_custom_template(false, $template_name, false, $fallback_name);
-	}
-
-	/**
-	* Defines a prefix to use for template paths in extensions
-	*
-	* @param string $ext_dir_prefix The prefix including trailing slash
-	* @return null
-	*/
-	public function set_ext_dir_prefix($ext_dir_prefix)
-	{
-		$this->provider->set_ext_dir_prefix($ext_dir_prefix);
-	}
-
-	/**
-	* Set custom template location (able to use directory outside of phpBB).
-	*
-	* Note: Templates are still compiled to phpBB's cache directory.
-	*
-	* @param string $template_path Path to template directory
-	* @param string $template_name Name of template
-	* @param string $fallback_template_path Path to fallback template
-	* @param string $fallback_template_name Name of fallback template
-	*/
-	public function set_custom_template($template_path, $template_name, $fallback_template_path = false, $fallback_template_name = false)
-	{
-		$templates = array($template_name => $template_path);
-
-		if ($fallback_template_name !== false)
-		{
-			$templates[$fallback_template_name] = $fallback_template_path;
-		}
-
-		$this->provider->set_templates($templates, $this->phpbb_root_path);
-		$this->locator->set_paths($this->provider);
-		$this->locator->set_main_template($this->provider->get_main_template_path());
-
-		$this->cachepath = $this->phpbb_root_path . 'cache/tpl_' . str_replace('_', '-', $template_name) . '_';
-
-		$this->context = new phpbb_template_context();
-
-		return true;
+		$this->template_path = $this->locator->template_path;
 	}
 
 	/**
@@ -333,7 +286,7 @@ class phpbb_template
 			return new phpbb_template_renderer_include($output_file, $this);
 		}
 
-		$compile = new phpbb_template_compile($this->config['tpl_allow_php']);
+		$compile = new phpbb_template_compile($this->config['tpl_allow_php'], $this->locator, $this->phpbb_root_path);
 
 		if ($compile->compile_file_to_file($source_file, $output_file) !== false)
 		{
@@ -500,5 +453,63 @@ class phpbb_template
 			return;
 		}
 		include($file);
+	}
+
+	/**
+	* Locates source template path, accounting for styles tree and verifying that
+	* the path exists.
+	*
+	* @param string or array $files List of templates to locate. If there is only
+	*				one template, $files can be a string to make code easier to read.
+	* @param bool $return_default Determines what to return if template does not
+	*				exist. If true, function will return location where template is
+	*				supposed to be. If false, function will return false.
+	* @param bool $return_full_path If true, function will return full path
+	*				to template. If false, function will return template file name.
+	*				This parameter can be used to check which one of set of template
+	*				files is available.
+	* @return string or boolean Source template path if template exists or $return_default is
+	*				true. False if template does not exist and $return_default is false
+	*/
+	public function locate($files, $return_default = false, $return_full_path = true)
+	{
+		// add tempalte path prefix
+		$templates = array();
+		if (is_string($files))
+		{
+			$templates[] = $this->template_path . $files;
+		}
+		else
+		{
+			foreach ($files as $file)
+			{
+				$templates[] = $this->template_path . $file;
+			}
+		}
+
+		// use resource locator to find files
+		return $this->locator->get_first_file_location($templates, $return_default, $return_full_path);
+	}
+
+	/**
+	* Include JS file
+	*
+	* @param string $file file name
+	* @param bool $locate True if file needs to be located
+	*/
+	public function _js_include($file, $locate = false)
+	{
+		// Locate file
+		if ($locate)
+		{
+			$file = $this->locator->get_first_file_location(array($file), true, true);
+		}
+
+		$file .= (strpos($file, '?') === false) ? '?' : '&';
+		$file .= 'assets_version=' . $this->config['assets_version'];
+
+		// Add HTML code
+		$code = '<script src="' . htmlspecialchars($file) . '"></script>';
+		$this->context->append_var('SCRIPTS', $code);
 	}
 }
