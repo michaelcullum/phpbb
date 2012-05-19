@@ -260,7 +260,7 @@ if ($has_global && !$ga_forum_id)
 		</form>
 	<?php
 	_print_footer();
-	exit;
+	exit_handler();
 }
 
 header('Content-type: text/html; charset=UTF-8');
@@ -2163,6 +2163,44 @@ function change_database_data(&$no_updates, $version)
 					WHERE ' . $db->sql_in_set('user_style', $deactivated_style_ids);
 				_sql($sql, $errored, $error_ary);
 			}
+
+			// Delete orphan private messages
+			$batch_size = 500;
+
+			$sql_array = array(
+				'SELECT'	=> 'p.msg_id',
+				'FROM'		=> array(
+					PRIVMSGS_TABLE	=> 'p',
+				),
+				'LEFT_JOIN'	=> array(
+					array(
+						'FROM'	=> array(PRIVMSGS_TO_TABLE => 't'),
+						'ON'	=> 'p.msg_id = t.msg_id',
+					),
+				),
+				'WHERE'		=> 't.user_id IS NULL',
+			);
+			$sql = $db->sql_build_query('SELECT', $sql_array);
+
+			do
+			{
+				$result = $db->sql_query_limit($sql, $batch_size);
+
+				$delete_pms = array();
+				while ($row = $db->sql_fetchrow($result))
+				{
+					$delete_pms[] = (int) $row['msg_id'];
+				}
+				$db->sql_freeresult($result);
+
+				if (!empty($delete_pms))
+				{
+					$sql = 'DELETE FROM ' . PRIVMSGS_TABLE . '
+						WHERE ' . $db->sql_in_set('msg_id', $delete_pms);
+					_sql($sql, $errored, $error_ary);
+				}
+			}
+			while (sizeof($delete_pms) == $batch_size);
 
 			$no_updates = false;
 		break;
