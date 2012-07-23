@@ -25,7 +25,7 @@ class acp_extensions
 	function main()
 	{
 		// Start the page
-		global $user, $template, $request, $phpbb_extension_manager, $db, $phpbb_root_path;
+		global $user, $template, $request, $phpbb_extension_manager, $db, $phpbb_root_path, $phpEx;
 
 		$user->add_lang(array('install', 'acp/extensions'));
 
@@ -39,8 +39,8 @@ class acp_extensions
 		{
 			case 'list':
 			default:
-				$this->list_enabled_exts($db, $template);
-				$this->list_disabled_exts($db, $template);
+				$this->list_enabled_exts($phpbb_extension_manager, $template);
+				$this->list_disabled_exts($phpbb_extension_manager, $template);
 				$this->list_available_exts($phpbb_extension_manager, $template);
 
 				$this->tpl_name = 'acp_ext_list';
@@ -56,7 +56,12 @@ class acp_extensions
 			break;
 
 			case 'enable':
-				$phpbb_extension_manager->enable($ext_name);
+				if ($phpbb_extension_manager->enable_step($ext_name))
+				{
+					$template->assign_var('S_NEXT_STEP', true);
+					
+					meta_refresh(0, $this->u_action . '&amp;action=enable&amp;ext_name=' . $ext_name);
+				}
 
 				$this->tpl_name = 'acp_ext_enable';
 
@@ -75,7 +80,12 @@ class acp_extensions
 			break;	
 
 			case 'disable':
-				$phpbb_extension_manager->disable($ext_name);
+				if ($phpbb_extension_manager->disable_step($ext_name))
+				{
+					$template->assign_var('S_NEXT_STEP', true);
+					
+					meta_refresh(0, $this->u_action . '&amp;action=disable&amp;ext_name=' . $ext_name);
+				}
 
 				$this->tpl_name = 'acp_ext_disable';
 
@@ -94,7 +104,12 @@ class acp_extensions
 			break;		
 
 			case 'purge':
-				$phpbb_extension_manager->purge($ext_name);
+				if ($phpbb_extension_manager->purge_step($ext_name))
+				{
+					$template->assign_var('S_NEXT_STEP', true);
+					
+					meta_refresh(0, $this->u_action . '&amp;action=purge&amp;ext_name=' . $ext_name);
+				}
 
 				$this->tpl_name = 'acp_ext_purge';
 
@@ -103,7 +118,7 @@ class acp_extensions
 				));
 			break;
 
-			case 'delete_pre':
+			/*case 'delete_pre':
 				$this->tpl_name = 'acp_ext_delete';
 
 				$template->assign_vars(array(
@@ -114,11 +129,15 @@ class acp_extensions
 
 			case 'delete':
 				$this->tpl_name = 'acp_ext_delete';
-			break;
+			break;*/
 
 			case 'details':
 				$md_manager = new phpbb_extension_metadata_manager($ext_name, $db, $phpbb_extension_manager, $phpbb_root_path, ".$phpEx", $template);
-				$md_manager->get_all_meta_data('all', true);
+				
+				if ($md_manager->get_metadata('all', true) === false)
+				{
+					trigger_error('EXTENSION_INVALID');
+				}
 
 				$this->tpl_name = 'acp_ext_details';
 			break;
@@ -128,91 +147,72 @@ class acp_extensions
 	/**
 	 * Lists all the enabled extensions and dumps to the template
 	 * 
-	 * @param  $db       A database connection
-	 * @param  $template An instance of the template engine
+	 * @param  $phpbb_extension_manager     An instance of the extension manager
+	 * @param  $template 					An instance of the template engine
 	 * @return null
 	 */
-	private function list_enabled_exts($db, $template)
+	private function list_enabled_exts(phpbb_extension_manager $phpbb_extension_manager, phpbb_template $template)
 	{
-		$sql = 'SELECT ext_name
-			FROM ' . EXT_TABLE . '
-			WHERE ext_active = 1
-			ORDER BY ext_name ASC';
-		$result = $db->sql_query($sql);
-		// TODO: Use the display name from the composer.json
-		while ($row = $db->sql_fetchrow($result))
+		foreach ($phpbb_extension_manager->all_enabled() as $name => $location)
 		{
+			$md_manager = $phpbb_extension_manager->get_extension_metadata($name, $template);
+			
 			$template->assign_block_vars('enabled', array(
-				'EXT_NAME'		=> $row['ext_name'],
+				'EXT_NAME'		=> $md_manager->get_metadata('name'),
 
-				'U_DETAILS'		=> $this->u_action . '&amp;action=details&amp;ext_name=' . $row['ext_name'],
-				'U_PURGE'		=> $this->u_action . '&amp;action=purge_pre&amp;ext_name=' . $row['ext_name'],
-				'U_DISABLE'		=> $this->u_action . '&amp;action=disable_pre&amp;ext_name=' . $row['ext_name'],
+				'U_DETAILS'		=> $this->u_action . '&amp;action=details&amp;ext_name=' . $name,
+				'U_PURGE'		=> $this->u_action . '&amp;action=purge_pre&amp;ext_name=' . $name,
+				'U_DISABLE'		=> $this->u_action . '&amp;action=disable_pre&amp;ext_name=' . $name,
 			));
 		}
-		$db->sql_freeresult($result);
-
-		return;
 	}
 
 	/**
 	 * Lists all the disabled extensions and dumps to the template
 	 * 
-	 * @param  $db       A database connection
-	 * @param  $template An instance of the template engine
+	 * @param  $phpbb_extension_manager     An instance of the extension manager
+	 * @param  $template 					An instance of the template engine
 	 * @return null
 	 */
-	private function list_disabled_exts($db, $template)
+	private function list_disabled_exts(phpbb_extension_manager $phpbb_extension_manager, phpbb_template $template)
 	{
-		$sql = 'SELECT ext_name
-			FROM ' . EXT_TABLE . '
-			WHERE ext_active = 0
-			ORDER BY ext_name ASC';
-		$result = $db->sql_query($sql);
-		// TODO: Use the display name from the composer.json
-		while ($row = $db->sql_fetchrow($result))
+		foreach ($phpbb_extension_manager->all_disabled() as $name => $location)
 		{
+			$md_manager = $phpbb_extension_manager->get_extension_metadata($name, $template);
+			
 			$template->assign_block_vars('disabled', array(
-				'EXT_NAME'		=> $row['ext_name'],
+				'EXT_NAME'		=> $md_manager->get_metadata('name'),
 
-				'U_DETAILS'		=> $this->u_action . '&amp;action=details&amp;ext_name=' . $row['ext_name'],
-				'U_PURGE'		=> $this->u_action . '&amp;action=purge_pre&amp;ext_name=' . $row['ext_name'],
-				'U_DELETE'		=> $this->u_action . '&amp;action=delete_pre&amp;ext_name=' . $row['ext_name'],
-				'U_ENABLE'		=> $this->u_action . '&amp;action=enable_pre&amp;ext_name=' . $row['ext_name'],
+				'U_DETAILS'		=> $this->u_action . '&amp;action=details&amp;ext_name=' . $name,
+				'U_PURGE'		=> $this->u_action . '&amp;action=purge_pre&amp;ext_name=' . $name,
+				//'U_DELETE'		=> $this->u_action . '&amp;action=delete_pre&amp;ext_name=' . $name,
+				'U_ENABLE'		=> $this->u_action . '&amp;action=enable_pre&amp;ext_name=' . $name,
 			));
 		}
-		$db->sql_freeresult($result);
-
-		return;
 	}
 
 	/**
 	 * Lists all the available extensions and dumps to the template
 	 * 
-	 * @param  $db       A database connection
-	 * @param  $template An instance of the template engine
+	 * @param  $phpbb_extension_manager     An instance of the extension manager
+	 * @param  $template 					An instance of the template engine
 	 * @return null
 	 */
-	function list_available_exts($phpbb_extension_manager, $template)
+	function list_available_exts(phpbb_extension_manager $phpbb_extension_manager, phpbb_template $template)
 	{
-		$phpbb_extension_manager->load_extensions();
-		$all_available = array_keys($phpbb_extension_manager->all_available());
-		$all_configured = array_keys($phpbb_extension_manager->all_configured());
-		$uninstalled = array_diff($all_available, $all_configured);
+		$uninstalled = array_diff_key($phpbb_extension_manager->all_available(), $phpbb_extension_manager->all_configured());
 
-		// TODO: Use the display name from the composer.json
-
-		foreach ($uninstalled as $ext)
+		foreach ($uninstalled as $name => $location)
 		{
-			$template->assign_block_vars('disabled', array(
-				'EXT_NAME'		=> $ext['ext_name'],
+			$md_manager = $phpbb_extension_manager->get_extension_metadata($name, $template);
 
-				'U_DETAILS'		=> $this->u_action . '&amp;action=details&amp;ext_name=' . $ext['ext_name'],
-				'U_DELETE'		=> $this->u_action . '&amp;action=delete_pre&amp;ext_name=' . $ext['ext_name'],
-				'U_ENABLE'		=> $this->u_action . '&amp;action=enable_pre&amp;ext_name=' . $ext['ext_name'],
+			$template->assign_block_vars('disabled', array(
+				'EXT_NAME'		=> $md_manager->get_metadata('name'),
+
+				'U_DETAILS'		=> $this->u_action . '&amp;action=details&amp;ext_name=' . $name,
+				//'U_DELETE'		=> $this->u_action . '&amp;action=delete_pre&amp;ext_name=' . $name,
+				'U_ENABLE'		=> $this->u_action . '&amp;action=enable_pre&amp;ext_name=' . $name,
 			));
 		}
-
-		return;
 	}
 }
