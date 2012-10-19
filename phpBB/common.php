@@ -8,9 +8,7 @@
 * Minimum Requirement: PHP 5.3.2
 */
 
-use Symfony\Component\Config\FileLocator;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
 */
@@ -116,6 +114,11 @@ $phpbb_class_loader_ext->set_cache($phpbb_container->get('cache.driver'));
 
 // set up caching
 $cache = $phpbb_container->get('cache');
+
+// Instantiate the Symfony Request object
+// This must be done before phpbb_request
+// because otherwise globals are disabled
+$symfony_request = Request::createFromGlobals();
 
 // Instantiate some basic classes
 $phpbb_dispatcher = $phpbb_container->get('dispatcher');
