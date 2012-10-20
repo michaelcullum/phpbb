@@ -4,7 +4,8 @@
 		"symfony/config": "2.1.*",
 		"symfony/dependency-injection": "2.1.*",
 		"symfony/event-dispatcher": "2.1.*",
-		"symfony/yaml": "2.1.*"
+		"symfony/yaml": "2.1.*",
+		"composer/installers": "*"
 	},
 	"require-dev": {
 		"fabpot/goutte": "1.0.x-dev"
