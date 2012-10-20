@@ -1,5 +1,5 @@
 {
-	"name": "phpbb/british-english",
+	"name": "phpbb/en",
 	"type": "phpbb3-language",
 	"description": "The British English default language pack for phpBB",
 	"homepage": "https://www.phpbb.com",
