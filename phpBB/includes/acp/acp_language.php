@@ -837,20 +837,29 @@ class acp_language
 				$lang_iso = request_var('iso', '');
 				$lang_iso = basename($lang_iso);
 
-				if (!$lang_iso || !file_exists("{$phpbb_root_path}language/$lang_iso/iso.txt"))
+				if (!$lang_iso || !file_exists("{$phpbb_root_path}language/$lang_iso/composer.json"))
 				{
 					trigger_error($user->lang['LANGUAGE_PACK_NOT_EXIST'] . adm_back_link($this->u_action), E_USER_WARNING);
 				}
 
-				$file = file("{$phpbb_root_path}language/$lang_iso/iso.txt");
+				if (!($file_contents = file_get_contents("{$phpbb_root_path}language/$lang_iso/composer.json")))
+				{
+					throw new phpbb_acp_exception('file_get_contents failed');
+				}
+
+				if (($composer_data = json_decode($file_contents, true)) === NULL)
+				{
+					throw new phpbb_acp_exception('json_decode failed on');
+				}
 
 				$lang_pack = array(
 					'iso'		=> $lang_iso,
-					'name'		=> trim(htmlspecialchars($file[0])),
-					'local_name'=> trim(htmlspecialchars($file[1], ENT_COMPAT, 'UTF-8')),
-					'author'	=> trim(htmlspecialchars($file[2], ENT_COMPAT, 'UTF-8'))
+					'name'		=> trim(htmlspecialchars($composer_data['extra']['english-name'])),
+					'local_name'=> trim(htmlspecialchars($composer_data['extra']['local-name'], ENT_COMPAT, 'UTF-8')),
+					'author'	=> trim(htmlspecialchars($composer_data['extra']['author'], ENT_COMPAT, 'UTF-8'))
 				);
-				unset($file);
+				unset($composer_data);
+				unset($file_contents);
 
 				$sql = 'SELECT lang_iso
 					FROM ' . LANG_TABLE . "

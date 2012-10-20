@@ -1,0 +1,23 @@
+{
+	"name": "phpbb/british-english",
+	"type": "phpbb3-language",
+	"description": "The British English default language pack for phpBB",
+	"homepage": "https://www.phpbb.com",
+	"version": "3.1.0-dev",
+	"licence": "GPL-2.0",
+	"authors": [
+		{
+			"name": "phpBB Group",
+			"homepage": "https://www.phpbb.com"
+		}
+	],
+	"require": {
+		"php": ">=5.3.2",
+		"phpbb": "3.1.0-dev"
+	},
+	"extra": {
+		"english-name": "British English",
+		"local-name": "British English",
+		"author": "phpBB Group"
+	}
+}
