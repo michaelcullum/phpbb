@@ -104,7 +104,7 @@ $phpbb_container = phpbb_create_compiled_container(
 	),
 	array(
 		new phpbb_di_pass_cron(),
-		new phpbb_event_kernel_compiler_pass(),
+		new phpbb_di_pass_kernel(),
 	),
 	$phpbb_root_path,
 	$phpEx
